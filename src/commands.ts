@@ -2,19 +2,28 @@ import { TelegrafContext } from "telegraf/typings/context";
 import { ResponseData } from "twitter";
 import { sendMediaTweet, sendTextTweet } from "./twitter";
 
+// Convert to array of allowed ids as number
+const ALLOWED_USER_IDS: number[] = process.env.ALLOWED_USERS_ID?.split(';').map(id => parseInt(id)) ?? []
+
+function isAllowed(userId?: number): boolean {
+  if(!userId) {
+    return false;
+  }
+  return ALLOWED_USER_IDS?.includes(userId) ?? false
+}
+
 function tweetUrlFromResponseData(responsData: ResponseData) {
   return `https://twitter.com/${responsData.user.screen_name}/status/${responsData.id_str}`;
 }
 
 export async function onTweet(ctx: TelegrafContext) {
-  if (!ctx.message) {
+  if (!ctx.message || !isAllowed(ctx.from?.id)) {
     return;
   }
 
   const messageId = ctx.message.message_id;
 
   ctx.deleteMessage(messageId).catch((e) => {
-    ctx.reply(e.message);
     return;
   });
 
